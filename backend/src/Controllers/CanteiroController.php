@@ -134,4 +134,64 @@ class CanteiroController
         ]));
         return $response->withStatus(200);
     }
+
+    public function getSummaryMeusCanteiros(Request $request, Response $response)
+    {
+        $usuarioUuid = $request->getAttribute('usuario_uuid');
+        $summary = $this->canteiroService->getSummaryMeusCanteiros($usuarioUuid);
+
+        $response->getBody()->write(json_encode($summary));
+        return $response->withStatus(200);
+    }
+
+    public function getSummaryAdmin(Request $request, Response $response)
+    {
+        $queryParams = $request->getQueryParams();
+        $hortaUuid = $queryParams['horta_uuid'] ?? null;
+        $summary = $this->canteiroService->getSummaryAdmin($hortaUuid);
+
+        $response->getBody()->write(json_encode($summary));
+        return $response->withStatus(200);
+    }
+
+    public function listEnhanced(Request $request, Response $response)
+    {
+        $queryParams = $request->getQueryParams();
+        $params = [
+            'search' => $queryParams['search'] ?? null,
+            'status' => $queryParams['status'] ?? null,
+            'horta_uuid' => $queryParams['horta_uuid'] ?? null,
+        ];
+
+        $payloadUsuarioLogado = [
+            'usuario_uuid' => $request->getAttribute('usuario_uuid'),
+            'cargo_uuid' => $request->getAttribute('cargo_uuid'),
+            'associacao_uuid' => $request->getAttribute('associacao_uuid'),
+            'horta_uuid' => $request->getAttribute('horta_uuid'),
+        ];
+
+        $canteiros = $this->canteiroService->findAllWhereEnhanced($params, $payloadUsuarioLogado);
+        
+        // Formatar resposta para o frontend
+        $canteirosFormatados = $canteiros->map(function($canteiro) {
+            $usuario = $canteiro->usuarios->first();
+            return [
+                'id' => $canteiro->uuid,
+                'numero_identificador' => $canteiro->numero_identificador ?? '—',
+                'tamanho_m2' => $canteiro->tamanho_m2 ?? 0,
+                'status' => $canteiro->status ?? 'Disponível',
+                'localizacao' => $canteiro->localizacao ?? '',
+                'plantio_atual' => $canteiro->plantio_atual ?? '',
+                'data_ultima_colheita' => $canteiro->data_ultima_colheita ?? null,
+                'horta_nome' => $canteiro->horta->nome_da_horta ?? '—',
+                'horta_uuid' => $canteiro->horta_uuid,
+                'usuario_responsavel' => $usuario ? $usuario->nome : '—',
+                'usuario_responsavel_uuid' => $usuario ? $usuario->uuid : null,
+                'ativo' => !$canteiro->excluido,
+            ];
+        });
+        
+        $response->getBody()->write(json_encode($canteirosFormatados));
+        return $response->withStatus(200);
+    }
 }

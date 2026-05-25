@@ -44,4 +44,8 @@ class CanteiroModel extends Model
     {
         return $this->belongsTo(UsuarioModel::class, 'usuario_alterador_uuid', 'uuid');
     }
-}
+
+    public function usuarioAnterior()
+    {
+        return $this->belongsTo(UsuarioModel::class, 'usuario_anterior_uuid', 'uuid');
+    }

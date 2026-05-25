@@ -156,6 +156,80 @@ class CanteiroService
         return $this->canteiroRepository->delete($canteiro, $data);
     }
 
+    public function getSummaryMeusCanteiros($usuarioUuid)
+    {
+        $canteiros = CanteiroModel::whereHas('usuarios', function ($q) use ($usuarioUuid) {
+            $q->where('usuario_uuid', $usuarioUuid);
+        })->where('excluido', 0)->get();
+
+        $totalArea = $canteiros->sum('tamanho_m2');
+        $totalCanteiros = $canteiros->count();
+        $canteirosAtivos = $canteiros->where('status', 'Ocupado')->count();
+
+        return [
+            'total_canteiros' => $totalCanteiros,
+            'total_area_m2' => $totalArea,
+            'canteiros_ativos' => $canteirosAtivos,
+            'media_area_m2' => $totalCanteiros > 0 ? round($totalArea / $totalCanteiros, 2) : 0,
+        ];
+    }
+
+    public function getSummaryAdmin($hortaUuid = null)
+    {
+        $query = CanteiroModel::where('excluido', 0);
+
+        if ($hortaUuid) {
+            $query->where('horta_uuid', $hortaUuid);
+        }
+
+        $total = $query->count();
+        $ocupados = $query->where('status', 'Ocupado')->count();
+        $disponiveis = $query->where('status', 'Disponível')->count();
+        $emPreparo = $query->where('status', 'Em Preparo')->count();
+
+        return [
+            'total' => $total,
+            'ocupados' => $ocupados,
+            'disponiveis' => $disponiveis,
+            'em_preparo' => $emPreparo,
+            'percentual_ocupacao' => $total > 0 ? round(($ocupados / $total) * 100, 2) : 0,
+        ];
+    }
+
+    public function findAllWhereEnhanced(array $params = [], array $payloadUsuarioLogado = []): Collection
+    {
+        $query = CanteiroModel::where('excluido', 0);
+
+        // Search by number, name, CPF, horta, localizacao
+        if (!empty($params['search'])) {
+            $search = '%' . $params['search'] . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('numero_identificador', 'like', $search)
+                  ->orWhereHas('horta', function ($qh) use ($search) {
+                      $qh->where('nome', 'like', $search);
+                  })
+                  ->orWhereHas('usuarios', function ($qu) use ($search) {
+                      $qu->where('nome', 'like', $search)
+                        ->orWhere('cpf', 'like', $search);
+                  })
+                  ->orWhere('localizacao', 'like', $search);
+            });
+        }
+
+        // Filter by status
+        if (!empty($params['status'])) {
+            $query->where('status', $params['status']);
+        }
+
+        // Filter by horta
+        if (!empty($params['horta_uuid'])) {
+            $query->where('horta_uuid', $params['horta_uuid']);
+        }
+
+        return $query->with(['horta', 'usuarioCriador', 'usuarioAlterador', 'usuarios'])
+                     ->get();
+    }
+
     /** Helpers **/
     private function getCargoSlug(array $payloadUsuarioLogado): string
     {
