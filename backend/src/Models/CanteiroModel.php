@@ -18,10 +18,15 @@ class CanteiroModel extends Model
         'uuid',
         'numero_identificador',
         'tamanho_m2',
+        'status',
+        'localizacao',
+        'plantio_atual',
+        'data_ultima_colheita',
         'horta_uuid',
         'excluido',
         'usuario_criador_uuid',
         'usuario_alterador_uuid',
+        'usuario_anterior_uuid',
     ];
 
     // Relacionamentos
