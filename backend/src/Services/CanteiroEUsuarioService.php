@@ -225,5 +225,37 @@ class CanteiroEUsuarioService
     private function getCargoSlug(array $payloadUsuarioLogado): string
     {
         return $this->cargoService->findByUuidInternal($payloadUsuarioLogado['cargo_uuid'])->slug;
-    } 
+    }
+    
+    /**
+     * RF08: Auto-create ownership relation when canteiro is created with owner
+     * Creates a relationship with tipo_vinculo=1 (Proprietário principal)
+     * 
+     * @param string $canteiroUuid UUID of the newly created canteiro
+     * @param string $usuarioUuid UUID of the owner user
+     * @param array $payloadUsuarioLogado Logged in user payload
+     * @return CanteiroEUsuarioModel The created relationship
+     * @throws Exception If validation fails
+     */
+    public function createOwnershipRelation(
+        string $canteiroUuid,
+        string $usuarioUuid,
+        array $payloadUsuarioLogado
+    ): CanteiroEUsuarioModel
+    {
+        // Prepare data with required fields for ownership relationship
+        $data = [
+            'canteiro_uuid' => $canteiroUuid,
+            'usuario_uuid' => $usuarioUuid,
+            'tipo_vinculo' => 1, // Proprietário principal
+            'data_inicio' => date('Y-m-d'),
+            'data_fim' => null,
+            'percentual_responsabilidade' => 100.00,
+            'observacoes' => null,
+            'ativo' => 1,
+        ];
+        
+        // Use the existing create method to handle validation and business rules
+        return $this->create($data, $payloadUsuarioLogado);
+    }
 }
