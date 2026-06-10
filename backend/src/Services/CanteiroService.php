@@ -164,7 +164,9 @@ class CanteiroService
 
         $totalArea = $canteiros->sum('tamanho_m2');
         $totalCanteiros = $canteiros->count();
-        $canteirosAtivos = $canteiros->where('status', 'Ocupado')->count();
+        $canteirosAtivos = $canteiros->filter(function ($c) {
+            return in_array($c->status, ['Ocupado', 'Ativo']);
+        })->count();
 
         return [
             'total_canteiros' => $totalCanteiros,

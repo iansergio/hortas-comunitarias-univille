@@ -49,3 +49,17 @@ class CanteiroModel extends Model
     {
         return $this->belongsTo(UsuarioModel::class, 'usuario_anterior_uuid', 'uuid');
     }
+
+    public function usuarios()
+    {
+        return $this->belongsToMany(UsuarioModel::class, 'canteiros_e_usuarios', 'canteiro_uuid', 'usuario_uuid')
+            ->wherePivot('excluido', 0)
+            ->wherePivot('ativo', 1);
+    }
+
+    public function vinculos()
+    {
+        return $this->hasMany(CanteiroEUsuarioModel::class, 'canteiro_uuid', 'uuid')
+            ->where('excluido', 0);
+    }
+}
