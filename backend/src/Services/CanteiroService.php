@@ -172,18 +172,39 @@ class CanteiroService
         ];
     }
 
-    public function getSummaryAdmin($hortaUuid = null)
+    public function getSummaryAdmin($hortaUuid = null, array $payloadUsuarioLogado = [])
     {
         $query = CanteiroModel::where('excluido', 0);
+
+        if (!empty($payloadUsuarioLogado)) {
+            $cargo = $this->getCargoSlug($payloadUsuarioLogado);
+            switch ($cargo) {
+                case 'admin_plataforma':
+                    break;
+
+                case 'admin_associacao_geral':
+                    $hortas = $this->hortaService->findAllWhere([], $payloadUsuarioLogado);
+                    $hortasUuids = $hortas->pluck('uuid')->toArray();
+                    $query->whereIn('horta_uuid', $hortasUuids);
+                    break;
+
+                case 'admin_horta_geral':
+                    $query->where('horta_uuid', $payloadUsuarioLogado['horta_uuid']);
+                    break;
+
+                default:
+                    throw new Exception("Acesso negado para este recurso");
+            }
+        }
 
         if ($hortaUuid) {
             $query->where('horta_uuid', $hortaUuid);
         }
 
         $total = $query->count();
-        $ocupados = $query->where('status', 'Ocupado')->count();
-        $disponiveis = $query->where('status', 'Disponível')->count();
-        $emPreparo = $query->where('status', 'Em Preparo')->count();
+        $ocupados = (clone $query)->where('status', 'Ocupado')->count();
+        $disponiveis = (clone $query)->where('status', 'Disponível')->count();
+        $emPreparo = (clone $query)->where('status', 'Em Preparo')->count();
 
         return [
             'total' => $total,

@@ -153,7 +153,13 @@ class CanteiroController
     {
         $queryParams = $request->getQueryParams();
         $hortaUuid = $queryParams['horta_uuid'] ?? null;
-        $summary = $this->canteiroService->getSummaryAdmin($hortaUuid);
+        $payloadUsuarioLogado = [
+            'usuario_uuid' => $request->getAttribute('usuario_uuid'),
+            'cargo_uuid' => $request->getAttribute('cargo_uuid'),
+            'associacao_uuid' => $request->getAttribute('associacao_uuid'),
+            'horta_uuid' => $request->getAttribute('horta_uuid'),
+        ];
+        $summary = $this->canteiroService->getSummaryAdmin($hortaUuid, $payloadUsuarioLogado);
 
         $response->getBody()->write(json_encode($summary));
         return $response->withStatus(200);
