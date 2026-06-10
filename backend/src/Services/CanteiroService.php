@@ -15,20 +15,17 @@ class CanteiroService
     protected HortaService $hortaService; 
     protected UsuarioService $usuarioService; 
     protected CargoService $cargoService;
-    protected CanteiroEUsuarioService $canteiroEUsuarioService;
 
     public function __construct(
         CanteiroRepository $canteiroRepository, 
         HortaService $hortaService, 
         UsuarioService $usuarioService,
-        CargoService $cargoService,
-        CanteiroEUsuarioService $canteiroEUsuarioService
+        CargoService $cargoService
     ) {
         $this->canteiroRepository = $canteiroRepository; 
         $this->hortaService = $hortaService;
         $this->usuarioService = $usuarioService;
         $this->cargoService = $cargoService;
-        $this->canteiroEUsuarioService = $canteiroEUsuarioService;
     }
 
     public function findAllWhere(array $payloadUsuarioLogado): Collection
@@ -146,21 +143,6 @@ class CanteiroService
         $data['excluido'] = 0;
 
         $canteiro = $this->canteiroRepository->create($data);
-        
-        // RF08 Business Rule: Auto-create ownership relation if owner provided
-        if (!empty($ownerUuid)) {
-            try {
-                $this->canteiroEUsuarioService->createOwnershipRelation(
-                    $canteiro->uuid,
-                    $ownerUuid,
-                    $payloadUsuarioLogado
-                );
-            } catch (Exception $e) {
-                // Log ownership creation failure but don't fail the canteiro creation
-                // In production, consider rollback or scheduled retry
-                error_log("Aviso: Falha ao criar vínculo de propriedade para canteiro {$canteiro->uuid}: " . $e->getMessage());
-            }
-        }
         
         return $canteiro;
     }

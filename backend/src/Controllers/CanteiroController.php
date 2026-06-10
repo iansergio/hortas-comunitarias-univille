@@ -9,10 +9,14 @@ use App\Services\CanteiroService;
 class CanteiroController
 {
     protected CanteiroService $canteiroService;
+    protected \App\Services\CanteiroEUsuarioService $canteiroEUsuarioService;
 
-    public function __construct(CanteiroService $canteiroService)
-    {
+    public function __construct(
+        CanteiroService $canteiroService,
+        \App\Services\CanteiroEUsuarioService $canteiroEUsuarioService
+    ) {
         $this->canteiroService = $canteiroService;
+        $this->canteiroEUsuarioService = $canteiroEUsuarioService;
     }
 
     
@@ -115,7 +119,21 @@ class CanteiroController
         ];
         $data = (array)$request->getParsedBody();
         try {
+            $ownerUuid = $data['usuario_uuid'] ?? null;
             $canteiro = $this->canteiroService->create($data, $payloadUsuarioLogado);
+
+            // RF08 Business Rule: Auto-create ownership relation if owner provided
+            if (!empty($ownerUuid)) {
+                try {
+                    $this->canteiroEUsuarioService->createOwnershipRelation(
+                        $canteiro->uuid,
+                        $ownerUuid,
+                        $payloadUsuarioLogado
+                    );
+                } catch (\Exception $e) {
+                    error_log("Aviso: Falha ao criar vínculo de propriedade para canteiro {$canteiro->uuid}: " . $e->getMessage());
+                }
+            }
 
             // Formatar resposta
             $canteiroFormatado = [
