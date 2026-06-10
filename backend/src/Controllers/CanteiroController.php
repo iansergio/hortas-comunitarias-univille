@@ -56,23 +56,53 @@ class CanteiroController
             'associacao_uuid' => $request->getAttribute('associacao_uuid'),
             'horta_uuid' => $request->getAttribute('horta_uuid'),
         ];
-        $canteiro = $this->canteiroService->findByUuid($args['uuid'],$payloadUsuarioLogado);
-        if (!$canteiro) return $response->withStatus(404);
+        try {
+            $canteiro = $this->canteiroService->findByUuid($args['uuid'], $payloadUsuarioLogado);
+            if (!$canteiro) return $response->withStatus(404);
 
-        // Formatar resposta para o frontend
-        $canteiroFormatado = [
-            'id' => $canteiro->uuid,
-            'nome' => $canteiro->numero_identificador ?? '',
-            'numero_identificador' => $canteiro->numero_identificador ?? '',
-            'area' => $canteiro->tamanho_m2 ?? 0,
-            'tamanho_m2' => $canteiro->tamanho_m2 ?? 0,
-            'horta_uuid' => $canteiro->horta_uuid,
-            'horta_nome' => $canteiro->horta->nome_da_horta ?? '',
-            'ativo' => !$canteiro->excluido,
-        ];
+            $vinculosFormatados = [];
+            if ($canteiro->vinculos) {
+                foreach ($canteiro->vinculos as $vinculo) {
+                    $vinculosFormatados[] = [
+                        'uuid' => $vinculo->uuid,
+                        'usuario_uuid' => $vinculo->usuario_uuid,
+                        'usuario_nome' => $vinculo->usuario->nome_completo ?? '—',
+                        'usuario_cpf' => $vinculo->usuario->cpf ?? '—',
+                        'tipo_vinculo' => $vinculo->tipo_vinculo,
+                        'data_inicio' => $vinculo->data_inicio,
+                        'data_fim' => $vinculo->data_fim,
+                        'percentual_responsabilidade' => $vinculo->percentual_responsabilidade,
+                        'observacoes' => $vinculo->observacoes,
+                        'ativo' => (bool)$vinculo->ativo,
+                    ];
+                }
+            }
 
-        $response->getBody()->write(json_encode($canteiroFormatado));
-        return $response->withStatus(200);
+            // Formatar resposta para o frontend
+            $canteiroFormatado = [
+                'id' => $canteiro->uuid,
+                'nome' => $canteiro->numero_identificador ?? '',
+                'numero_identificador' => $canteiro->numero_identificador ?? '',
+                'area' => $canteiro->tamanho_m2 ?? 0,
+                'tamanho_m2' => $canteiro->tamanho_m2 ?? 0,
+                'status' => $canteiro->status ?? 'Disponível',
+                'localizacao' => $canteiro->localizacao ?? '',
+                'plantio_atual' => $canteiro->plantio_atual ?? '',
+                'data_ultima_colheita' => $canteiro->data_ultima_colheita ?? null,
+                'horta_uuid' => $canteiro->horta_uuid,
+                'horta_nome' => $canteiro->horta->nome_da_horta ?? '',
+                'ativo' => !$canteiro->excluido,
+                'historico' => $vinculosFormatados,
+            ];
+
+            $response->getBody()->write(json_encode($canteiroFormatado));
+            return $response->withStatus(200);
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode([
+                "error" => $e->getMessage()
+            ]));
+            return $response->withStatus(404);
+        }
     }
 
     public function create(Request $request, Response $response)
@@ -84,19 +114,30 @@ class CanteiroController
             'horta_uuid' => $request->getAttribute('horta_uuid'),
         ];
         $data = (array)$request->getParsedBody();
-        $uuidUsuarioLogado = $request->getAttribute('usuario_uuid');
-        $canteiro = $this->canteiroService->create($data,$payloadUsuarioLogado);
+        try {
+            $canteiro = $this->canteiroService->create($data, $payloadUsuarioLogado);
 
-        // Formatar resposta
-        $canteiroFormatado = [
-            'id' => $canteiro->uuid,
-            'numero_identificador' => $canteiro->numero_identificador,
-            'tamanho_m2' => $canteiro->tamanho_m2,
-            'horta_uuid' => $canteiro->horta_uuid,
-        ];
+            // Formatar resposta
+            $canteiroFormatado = [
+                'id' => $canteiro->uuid,
+                'numero_identificador' => $canteiro->numero_identificador,
+                'tamanho_m2' => $canteiro->tamanho_m2,
+                'status' => $canteiro->status ?? 'Disponível',
+                'localizacao' => $canteiro->localizacao ?? '',
+                'plantio_atual' => $canteiro->plantio_atual ?? '',
+                'data_ultima_colheita' => $canteiro->data_ultima_colheita ?? null,
+                'horta_uuid' => $canteiro->horta_uuid,
+                'ativo' => !$canteiro->excluido,
+            ];
 
-        $response->getBody()->write(json_encode($canteiroFormatado));
-        return $response->withStatus(201);
+            $response->getBody()->write(json_encode($canteiroFormatado));
+            return $response->withStatus(201);
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode([
+                "error" => $e->getMessage()
+            ]));
+            return $response->withStatus(400);
+        }
     }
 
     public function update(Request $request, Response $response, array $args)
@@ -108,19 +149,30 @@ class CanteiroController
             'horta_uuid' => $request->getAttribute('horta_uuid'),
         ];
         $data = (array)$request->getParsedBody();
-        $uuidUsuarioLogado = $request->getAttribute('usuario_uuid');
-        $canteiro = $this->canteiroService->update($args['uuid'], $data,$payloadUsuarioLogado);
+        try {
+            $canteiro = $this->canteiroService->update($args['uuid'], $data, $payloadUsuarioLogado);
 
-        // Formatar resposta
-        $canteiroFormatado = [
-            'id' => $canteiro->uuid,
-            'numero_identificador' => $canteiro->numero_identificador,
-            'tamanho_m2' => $canteiro->tamanho_m2,
-            'horta_uuid' => $canteiro->horta_uuid,
-        ];
+            // Formatar resposta
+            $canteiroFormatado = [
+                'id' => $canteiro->uuid,
+                'numero_identificador' => $canteiro->numero_identificador,
+                'tamanho_m2' => $canteiro->tamanho_m2,
+                'status' => $canteiro->status ?? 'Disponível',
+                'localizacao' => $canteiro->localizacao ?? '',
+                'plantio_atual' => $canteiro->plantio_atual ?? '',
+                'data_ultima_colheita' => $canteiro->data_ultima_colheita ?? null,
+                'horta_uuid' => $canteiro->horta_uuid,
+                'ativo' => !$canteiro->excluido,
+            ];
 
-        $response->getBody()->write(json_encode($canteiroFormatado));
-        return $response->withStatus(200);
+            $response->getBody()->write(json_encode($canteiroFormatado));
+            return $response->withStatus(200);
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode([
+                "error" => $e->getMessage()
+            ]));
+            return $response->withStatus(400);
+        }
     }
 
     public function delete(Request $request, Response $response, array $args)
@@ -131,13 +183,19 @@ class CanteiroController
             'associacao_uuid' => $request->getAttribute('associacao_uuid'),
             'horta_uuid' => $request->getAttribute('horta_uuid'),
         ];
-        $uuidUsuarioLogado = $request->getAttribute('usuario_uuid');
-        $this->canteiroService->delete($args['uuid'],$payloadUsuarioLogado);
-        
-        $response->getBody()->write(json_encode([
-            "message" => "Registro UUID: " . $args['uuid'] . " excluído"
-        ]));
-        return $response->withStatus(200);
+        try {
+            $this->canteiroService->delete($args['uuid'], $payloadUsuarioLogado);
+            
+            $response->getBody()->write(json_encode([
+                "message" => "Registro UUID: " . $args['uuid'] . " excluído"
+            ]));
+            return $response->withStatus(200);
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode([
+                "error" => $e->getMessage()
+            ]));
+            return $response->withStatus(400);
+        }
     }
 
     public function getSummaryMeusCanteiros(Request $request, Response $response)

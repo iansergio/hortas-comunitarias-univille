@@ -20,7 +20,7 @@ class CanteiroRepository
 
     public function findByUuid(string $uuid): ?CanteiroModel
     {
-        return $this->canteiroModel->with('horta')->find($uuid);
+        return $this->canteiroModel->with(['horta', 'vinculos.usuario'])->find($uuid);
     }
 
     public function create(array $data): CanteiroModel

@@ -144,6 +144,11 @@ class CanteiroService
             throw new Exception('Canteiro não encontrado');
         }
 
+        $vinculosAtivos = $canteiro->vinculos()->where('ativo', 1)->count();
+        if ($vinculosAtivos > 0) {
+            throw new Exception('Não é possível excluir o canteiro pois existem usuários vinculados ativamente a ele.');
+        }
+
         $data = [
             'excluido' => 1,
             'usuario_alterador_uuid' => $payloadUsuarioLogado['usuario_uuid'],
