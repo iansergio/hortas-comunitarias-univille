@@ -570,5 +570,13 @@ class UsuarioService {
     return $this->usuarioRepository->delete($usuario, $data);
     }
 
+    /**
+     * Internal validation method - get usuario without permission checks
+     * Used during create operations for validation
+     */
+    public function findByUuidForValidation(string $uuid): ?UsuarioModel
+    {
+        return $this->usuarioRepository->findByUuid($uuid);
+    }
 
 }

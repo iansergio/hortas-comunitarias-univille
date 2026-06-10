@@ -296,5 +296,10 @@ class HortaService
     private function getCargoSlug(array $payloadUsuarioLogado): string
     {
         return $this->cargoService->findByUuidInternal($payloadUsuarioLogado['cargo_uuid'])->slug;
-    } 
+    }
+    
+    public function findByUuidForValidation(string $uuid): ?HortaModel
+    {
+        return $this->hortaRepository->findByUuid($uuid);
+    }
 }
