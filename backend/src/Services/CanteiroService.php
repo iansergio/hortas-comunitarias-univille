@@ -30,18 +30,12 @@ class CanteiroService
 
     public function findAllWhere(array $payloadUsuarioLogado): Collection
     {
-        // TODO: Reativar verificação de permissões em produção
-        return $this->canteiroRepository->findAllWhere(['excluido' => 0]);
-
-        /*
         $cargo = $this->getCargoSlug($payloadUsuarioLogado);
-        echo "CARGO ===========> " . $cargo;
         switch ($cargo) {
             case 'admin_plataforma':
                 return $this->canteiroRepository->findAllWhere(['excluido' => 0]);
 
             case 'admin_associacao_geral':
-                // hortas da associação do usuário
                 $hortas = $this->hortaService->findAllWhere([], $payloadUsuarioLogado);
                 $hortasUuids = $hortas->pluck('uuid')->toArray();
 
@@ -54,15 +48,17 @@ class CanteiroService
                     'horta_uuid' => $payloadUsuarioLogado['horta_uuid']
                 ]);
 
+            case 'canteirista':
+                return CanteiroModel::whereHas('usuarios', function ($q) use ($payloadUsuarioLogado) {
+                    $q->where('usuario_uuid', $payloadUsuarioLogado['usuario_uuid']);
+                })->where('excluido', 0)->with('horta')->get();
+
             default:
-                // demais cargos só leitura, mas filtrando pela associação/horta
-                return $this->canteiroRepository->findAllWhere(['excluido' => 0])
-                    ->filter(function($canteiro) use ($payloadUsuarioLogado) {
-                        $horta = $this->hortaService->findByUuid($canteiro->horta_uuid, $payloadUsuarioLogado);
-                        return $horta->associacao_vinculada_uuid === $payloadUsuarioLogado['associacao_uuid'];
-                    });
+                // Other roles (e.g. dependente) - restrict to linked canteiros
+                return CanteiroModel::whereHas('usuarios', function ($q) use ($payloadUsuarioLogado) {
+                    $q->where('usuario_uuid', $payloadUsuarioLogado['usuario_uuid']);
+                })->where('excluido', 0)->with('horta')->get();
         }
-        */
     }
     
     public function findByUuid(string $uuid, array $payloadUsuarioLogado): ?CanteiroModel

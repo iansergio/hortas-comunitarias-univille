@@ -32,9 +32,14 @@ class CanteiroController
             return [
                 'id' => $canteiro->uuid,
                 'nome' => $canteiro->numero_identificador ?? '—',
+                'numero_identificador' => $canteiro->numero_identificador ?? '—',
                 'area' => $canteiro->tamanho_m2 ?? 0,
+                'tamanho_m2' => $canteiro->tamanho_m2 ?? 0,
                 'horta_nome' => $canteiro->horta->nome_da_horta ?? '—',
                 'horta_uuid' => $canteiro->horta_uuid,
+                'plantio_atual' => $canteiro->plantio_atual ?? '—',
+                'data_ultima_colheita' => $canteiro->data_ultima_colheita ?? null,
+                'status' => $canteiro->status ?? 'Disponível',
                 'ativo' => !$canteiro->excluido,
             ];
         });
