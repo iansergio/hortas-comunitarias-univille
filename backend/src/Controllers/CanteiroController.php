@@ -199,6 +199,8 @@ class CanteiroController
                 'usuario_responsavel' => $usuario ? $usuario->nome_completo : '—',
                 'usuario_responsavel_cpf' => $usuario ? $usuario->cpf : null,
                 'usuario_responsavel_uuid' => $usuario ? $usuario->uuid : null,
+                'usuario_responsavel_tipo_vinculo' => $usuario ? $usuario->pivot->tipo_vinculo : null,
+                'usuario_responsavel_percentual' => $usuario ? $usuario->pivot->percentual_responsabilidade : null,
                 'ativo' => !$canteiro->excluido,
             ];
         });
