@@ -246,7 +246,7 @@ class CanteiroService
 
         // Search by number, horta name, canteirista name, CPF, localizacao
         if (!empty($params['search'])) {
-            $search = '%' . $params['search'] . '%';
+            $search = '%' . trim($params['search']) . '%';
             $query->where(function ($q) use ($search) {
                 $q->where('numero_identificador', 'like', $search)
                   ->orWhere('localizacao', 'like', $search)
