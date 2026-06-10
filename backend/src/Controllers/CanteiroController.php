@@ -190,7 +190,8 @@ class CanteiroController
                 'data_ultima_colheita' => $canteiro->data_ultima_colheita ?? null,
                 'horta_nome' => $canteiro->horta->nome_da_horta ?? '—',
                 'horta_uuid' => $canteiro->horta_uuid,
-                'usuario_responsavel' => $usuario ? $usuario->nome : '—',
+                'usuario_responsavel' => $usuario ? $usuario->nome_completo : '—',
+                'usuario_responsavel_cpf' => $usuario ? $usuario->cpf : null,
                 'usuario_responsavel_uuid' => $usuario ? $usuario->uuid : null,
                 'ativo' => !$canteiro->excluido,
             ];

@@ -198,19 +198,44 @@ class CanteiroService
     {
         $query = CanteiroModel::where('excluido', 0);
 
-        // Search by number, name, CPF, horta, localizacao
+        if (!empty($payloadUsuarioLogado)) {
+            $cargo = $this->getCargoSlug($payloadUsuarioLogado);
+            switch ($cargo) {
+                case 'admin_plataforma':
+                    break;
+
+                case 'admin_associacao_geral':
+                    $hortas = $this->hortaService->findAllWhere([], $payloadUsuarioLogado);
+                    $hortasUuids = $hortas->pluck('uuid')->toArray();
+                    $query->whereIn('horta_uuid', $hortasUuids);
+                    break;
+
+                case 'admin_horta_geral':
+                    $query->where('horta_uuid', $payloadUsuarioLogado['horta_uuid']);
+                    break;
+
+                case 'canteirista':
+                default:
+                    $query->whereHas('usuarios', function ($q) use ($payloadUsuarioLogado) {
+                        $q->where('usuario_uuid', $payloadUsuarioLogado['usuario_uuid']);
+                    });
+                    break;
+            }
+        }
+
+        // Search by number, horta name, canteirista name, CPF, localizacao
         if (!empty($params['search'])) {
             $search = '%' . $params['search'] . '%';
             $query->where(function ($q) use ($search) {
                 $q->where('numero_identificador', 'like', $search)
+                  ->orWhere('localizacao', 'like', $search)
                   ->orWhereHas('horta', function ($qh) use ($search) {
-                      $qh->where('nome', 'like', $search);
+                      $qh->where('nome_da_horta', 'like', $search);
                   })
                   ->orWhereHas('usuarios', function ($qu) use ($search) {
-                      $qu->where('nome', 'like', $search)
+                      $qu->where('nome_completo', 'like', $search)
                         ->orWhere('cpf', 'like', $search);
-                  })
-                  ->orWhere('localizacao', 'like', $search);
+                  });
             });
         }
 
