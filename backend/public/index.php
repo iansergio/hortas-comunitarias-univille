@@ -1,28 +1,31 @@
 <?php
 
 // ================= CORS Headers =================
-// Permitir requisições do frontend
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'https://hortas-comunitarias-univille.up.railway.app'];
+
+$allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://hortas-comunitarias-univille.up.railway.app'
+];
+
 if (in_array($origin, $allowedOrigins)) {
     header('Access-Control-Allow-Origin: ' . $origin);
 }
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 header('Access-Control-Allow-Credentials: true');
 
-// Responder requisições OPTIONS (preflight)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
-// ================================================
+// =================================================
 
 require __DIR__ . '/../vendor/autoload.php';
 
 use DI\ContainerBuilder;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Dotenv\Dotenv;
 use Slim\Factory\AppFactory;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -32,21 +35,24 @@ use App\Middlewares\JwtMiddleware;
 use App\Middlewares\RoutePermissionMiddleware;
 
 // --------------- Carregando .env
-if (file_exists(__DIR__ . '/../.env')) { // Se existir o .env (em dev) carrega, se não puxa da config do env de deploy
+if (file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 }
+
 foreach ($_SERVER as $key => $value) {
     if (getenv($key) !== false && !isset($_ENV[$key])) {
         $_ENV[$key] = $value;
     }
 }
 
-// --------------- Criando containder e adicionado registro de como criar dependências
+// --------------- Criando container e dependências
 $containerBuilder = new ContainerBuilder();
-if (false) { // Setar true em prod
+
+if (false) {
     $containerBuilder->enableCompilation(__DIR__ . '/../var/cache');
 }
+
 $dependencies = require __DIR__ . '/../config/dependencies.php';
 $dependencies($containerBuilder);
 
@@ -65,15 +71,15 @@ $routes = require __DIR__ . '/../src/Routes/IndexRoutes.php';
 $routes($app);
 
 // --------------- Middlewares
-// Nota: Middlewares são executados em ordem INVERSA (LIFO - Last In, First Out)
-// Por isso, JwtMiddleware vem por último aqui (será executado primeiro)
 $app->addBodyParsingMiddleware();
 $app->addErrorMiddleware(true, true, true);
 $app->add(ForcarJsonMiddleware::class);
 $app->add(FormatadorDeErrosMiddleware::class);
-// $app->add(RoutePermissionMiddleware::class); // ← Desabilitado temporariamente (sistema de permissões)
-$app->add(JwtMiddleware::class); // JWT executado PRIMEIRO (adicionado por último)
+
+// Sistema de permissões desabilitado temporariamente
+// $app->add(RoutePermissionMiddleware::class);
+
+$app->add(JwtMiddleware::class);
 
 // --------------- Rodando app
 $app->run();
-?>

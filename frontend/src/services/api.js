@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: process.env.VUE_APP_API_URL || 'http://localhost:8000/api/v1',
+  baseURL: process.env.VUE_APP_API_URL || 'http://localhost:8181/api/v1/sessoes/login',
   timeout: 10000,
 })
 

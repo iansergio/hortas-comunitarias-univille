@@ -35,29 +35,109 @@ export default {
   setup() {
     const store = useStore()
     const q = ref('')
-    const canteiros = computed(() => store.getters['canteiros/allCanteiros'])
-    onMounted(() => store.dispatch('canteiros/fetchCanteiros'))
+
+    // true = usa dados fake para conseguir mexer na tela sem login/API
+    // depois que o login funcionar, troque para false
+    const usarMock = true
+
+    const mockCanteiros = [
+      {
+        id: '1',
+        uuid: '1',
+        nome: 'Canteiro 001',
+        numero_identificador: 'C-001',
+        area: 10,
+        tamanho_m2: 10,
+        ativo: true
+      },
+      {
+        id: '2',
+        uuid: '2',
+        nome: 'Canteiro 002',
+        numero_identificador: 'C-002',
+        area: 15,
+        tamanho_m2: 15,
+        ativo: true
+      }
+    ]
+
+    const normalizarCanteiro = (c) => ({
+      ...c,
+      id: c.id || c.uuid,
+      nome: c.nome || c.numero_identificador || `Canteiro ${c.id || c.uuid || ''}`,
+      area: Number(c.area || c.tamanho_m2 || 0),
+      ativo: c.ativo ?? true
+    })
+
+    const canteiros = computed(() => {
+      if (usarMock) {
+        return mockCanteiros
+      }
+
+      const data = store.getters['canteiros/allCanteiros']
+
+      if (Array.isArray(data)) {
+        return data.map(normalizarCanteiro)
+      }
+
+      if (Array.isArray(data?.data)) {
+        return data.data.map(normalizarCanteiro)
+      }
+
+      if (Array.isArray(data?.canteiros)) {
+        return data.canteiros.map(normalizarCanteiro)
+      }
+
+      return []
+    })
+
+    onMounted(async () => {
+      if (!usarMock) {
+        try {
+          await store.dispatch('canteiros/fetchCanteiros')
+        } catch (error) {
+          console.error('Erro ao carregar canteiros:', error)
+        }
+      }
+    })
 
     const totalArea = computed(() => {
-      const sum = canteiros.value.reduce((s, c) => s + (Number(c.area || 0)), 0)
+      const sum = canteiros.value.reduce((s, c) => s + Number(c.area || 0), 0)
       return `${sum}m²`
     })
 
-    const activeCount = computed(() => canteiros.value.filter(c => c.ativo).length)
+    const activeCount = computed(() => {
+      return canteiros.value.filter(c => c.ativo).length
+    })
 
     const filtered = computed(() => {
       if (!q.value) return canteiros.value
-      return canteiros.value.filter(c => c.nome.toLowerCase().includes(q.value.toLowerCase()))
+
+      return canteiros.value.filter(c =>
+        c.nome.toLowerCase().includes(q.value.toLowerCase())
+      )
     })
 
     const confirmDelete = async (item) => {
+      if (usarMock) {
+        alert('Delete desativado no modo teste sem API')
+        return
+      }
+
       if (confirm(`Excluir ${item.nome}?`)) {
         const res = await store.dispatch('canteiros/deleteCanteiro', item.id)
         if (!res.success) alert(res.message)
       }
     }
 
-    return { q, canteiros, filtered, totalArea, activeCount, confirmDelete }
+    return {
+      q,
+      canteiros,
+      filtered,
+      totalArea,
+      activeCount,
+      confirmDelete
+    }
   }
 }
 </script>

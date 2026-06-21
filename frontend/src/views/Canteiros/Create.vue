@@ -5,73 +5,69 @@
         <div class="card shadow">
           <div class="card-body">
             <h2 class="mb-4">Novo Canteiro</h2>
-            
+
             <div v-if="errorMessage" class="alert alert-danger">
               {{ errorMessage }}
             </div>
-            
+
             <form @submit.prevent="handleSubmit">
               <div class="mb-3">
-                <label for="numero_identificador" class="form-label">Número Identificador <span class="text-danger">*</span></label>
-                <input
-                  id="numero_identificador"
-                  v-model="form.numero_identificador"
-                  type="text"
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.numero_identificador }"
-                  placeholder="Ex: C-001, Canteiro 1, etc."
-                  required
-                />
-                <div v-if="errors.numero_identificador" class="invalid-feedback">
-                  {{ errors.numero_identificador }}
-                </div>
+                <label class="form-label">Número Identificador <span class="text-danger">*</span></label>
+                <input v-model="form.numero_identificador" class="form-control" placeholder="Ex: C-001" />
               </div>
-              
+
               <div class="mb-3">
-                <label for="tamanho_m2" class="form-label">Tamanho (m²) <span class="text-danger">*</span></label>
-                <input
-                  id="tamanho_m2"
-                  v-model="form.tamanho_m2"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.tamanho_m2 }"
-                  placeholder="Ex: 10.5"
-                  required
-                />
-                <div v-if="errors.tamanho_m2" class="invalid-feedback">
-                  {{ errors.tamanho_m2 }}
-                </div>
+                <label class="form-label">Tamanho (m²) <span class="text-danger">*</span></label>
+                <input v-model="form.tamanho_m2" type="number" step="0.01" min="0" class="form-control" />
               </div>
-              
+
               <div class="mb-3">
-                <label for="horta_uuid" class="form-label">Horta <span class="text-danger">*</span></label>
-                <select
-                  id="horta_uuid"
-                  v-model="form.horta_uuid"
-                  class="form-select"
-                  :class="{ 'is-invalid': errors.horta_uuid }"
-                  required
-                >
+                <label class="form-label">Localização <span class="text-danger">*</span></label>
+                <input v-model="form.localizacao" class="form-control" placeholder="Ex: Setor A - Fileira 1" />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Horta Vinculada <span class="text-danger">*</span></label>
+                <select v-model="form.horta_uuid" class="form-select">
                   <option value="">Selecione uma horta</option>
-                  <option v-for="horta in hortas" :key="horta.id" :value="horta.id">
-                    {{ horta.nome }}
+                  <option v-for="h in hortas" :key="h.uuid" :value="h.uuid">
+                    {{ h.nome }}
                   </option>
                 </select>
-                <div v-if="errors.horta_uuid" class="invalid-feedback">
-                  {{ errors.horta_uuid }}
-                </div>
               </div>
-              
+
+              <div class="mb-3">
+                <label class="form-label">Canteirista Proprietário (opcional)</label>
+                <select v-model="form.usuario_uuid" class="form-select">
+                  <option value="">Sem proprietário</option>
+                  <option v-for="u in usuarios" :key="u.uuid" :value="u.uuid">
+                    {{ u.nome }} - {{ u.cpf }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Status</label>
+                <select v-model="form.status" class="form-select">
+                  <option value="Disponível">Disponível</option>
+                  <option value="Ocupado">Ocupado</option>
+                  <option value="Em Preparo">Em Preparo</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Plantio Atual</label>
+                <input v-model="form.plantio_atual" class="form-control" placeholder="Ex: Tomates" />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Data da Última Colheita</label>
+                <input v-model="form.data_ultima_colheita" type="date" class="form-control" />
+              </div>
+
               <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-success" :disabled="loading">
-                  <span v-if="loading">Salvando...</span>
-                  <span v-else>Salvar</span>
-                </button>
-                <router-link to="/canteiros" class="btn btn-secondary">
-                  Cancelar
-                </router-link>
+                <button type="submit" class="btn btn-success">Salvar</button>
+                <router-link to="/canteiros" class="btn btn-secondary">Cancelar</router-link>
               </div>
             </form>
           </div>
@@ -82,90 +78,87 @@
 </template>
 
 <script>
-import { reactive, ref, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+const STORAGE_KEY = 'canteiros_admin'
+
+const hortas = [
+  { uuid: 'horta-1', nome: 'Horta Comunitária Adhemar Garcia' },
+  { uuid: 'horta-2', nome: 'Horta Sabor da Terra' }
+]
+
+const usuarios = [
+  { uuid: 'usuario-1', nome: 'José Silva', cpf: '123.456.789-00' },
+  { uuid: 'usuario-2', nome: 'Maria Souza', cpf: '987.654.321-00' }
+]
 
 export default {
   name: 'CanteirosCreate',
-  setup() {
-    const store = useStore()
-    const router = useRouter()
-    
-    const form = reactive({
-      numero_identificador: '',
-      tamanho_m2: '',
-      horta_uuid: ''
-    })
-    
-    const errors = reactive({
-      numero_identificador: '',
-      tamanho_m2: '',
-      horta_uuid: ''
-    })
-    
-    const loading = ref(false)
-    const errorMessage = ref('')
-    const hortas = computed(() => store.getters['hortas/allHortas'])
-    
-    onMounted(() => {
-      store.dispatch('hortas/fetchHortas')
-    })
-    
-    const validateForm = () => {
-      let isValid = true
-      errors.numero_identificador = ''
-      errors.tamanho_m2 = ''
-      errors.horta_uuid = ''
-      
-      if (!form.numero_identificador || form.numero_identificador.trim() === '') {
-        errors.numero_identificador = 'Número identificador é obrigatório'
-        isValid = false
-      } else if (form.numero_identificador.length < 2) {
-        errors.numero_identificador = 'Número identificador deve ter no mínimo 2 caracteres'
-        isValid = false
+  data() {
+    return {
+      errorMessage: '',
+      hortas,
+      usuarios,
+      form: {
+        numero_identificador: '',
+        tamanho_m2: '',
+        localizacao: '',
+        horta_uuid: '',
+        usuario_uuid: '',
+        status: 'Disponível',
+        plantio_atual: '',
+        data_ultima_colheita: ''
       }
-      
-      if (!form.tamanho_m2 || form.tamanho_m2 === '') {
-        errors.tamanho_m2 = 'Tamanho é obrigatório'
-        isValid = false
-      } else if (Number(form.tamanho_m2) <= 0) {
-        errors.tamanho_m2 = 'Tamanho deve ser maior que zero'
-        isValid = false
-      }
-      
-      if (!form.horta_uuid || form.horta_uuid === '') {
-        errors.horta_uuid = 'Selecione uma horta'
-        isValid = false
-      }
-      
-      return isValid
     }
-    
-    const handleSubmit = async () => {
-      if (!validateForm()) {
-        errorMessage.value = 'Por favor, corrija os erros no formulário'
+  },
+  methods: {
+    handleSubmit() {
+      this.errorMessage = ''
+
+      if (!this.form.numero_identificador.trim()) {
+        this.errorMessage = 'Número identificador é obrigatório.'
         return
       }
-      
-      loading.value = true
-      const res = await store.dispatch('canteiros/createCanteiro', form)
-      loading.value = false
-      
-      if (res.success) {
-        router.push('/canteiros')
-      } else {
-        errorMessage.value = res.message || 'Erro ao criar canteiro'
+
+      if (!this.form.tamanho_m2 || Number(this.form.tamanho_m2) <= 0) {
+        this.errorMessage = 'Tamanho deve ser maior que zero.'
+        return
       }
-    }
-    
-    return {
-      form,
-      errors,
-      loading,
-      errorMessage,
-      hortas,
-      handleSubmit
+
+      if (!this.form.localizacao.trim()) {
+        this.errorMessage = 'Localização é obrigatória.'
+        return
+      }
+
+      if (!this.form.horta_uuid) {
+        this.errorMessage = 'Selecione uma horta.'
+        return
+      }
+
+      const lista = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      const horta = this.hortas.find(h => h.uuid === this.form.horta_uuid)
+      const usuario = this.usuarios.find(u => u.uuid === this.form.usuario_uuid)
+
+      const novo = {
+        id: Date.now().toString(),
+        numero_identificador: this.form.numero_identificador,
+        tamanho_m2: Number(this.form.tamanho_m2),
+        localizacao: this.form.localizacao,
+        horta_uuid: this.form.horta_uuid,
+        horta_nome: horta?.nome || '',
+        usuario_responsavel_uuid: usuario?.uuid || '',
+        usuario_responsavel: usuario?.nome || '',
+        usuario_responsavel_cpf: usuario?.cpf || '',
+        plantio_atual: this.form.plantio_atual,
+        data_ultima_colheita: this.form.data_ultima_colheita,
+        status: this.form.usuario_uuid ? 'Ocupado' : this.form.status,
+        historico: [
+          'Canteiro cadastrado',
+          this.form.usuario_uuid ? 'Vínculo de proprietário criado automaticamente' : 'Cadastrado sem proprietário'
+        ]
+      }
+
+      lista.push(novo)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lista))
+      this.$router.push('/canteiros')
     }
   }
 }
